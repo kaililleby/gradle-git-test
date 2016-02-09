@@ -1,3 +1,100 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter() //uten denne funker ikke gradle-docker-plugin
+    }
+    dependencies {
+        classpath group: 'com.jcabi', name: 'jcabi-github', version: '0.23'
+    }
+}
+
+plugins {
+    id "org.ajoberstar.grgit" version "1.4.1"
+}
+
+
+apply plugin: 'java'
+apply plugin: 'groovy'
+
+
+
+repositories {
+    // jcenter()
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'org.ajoberstar', name: 'gradle-git', version: '1.4.1'
+    compile group: 'com.jcabi', name: 'jcabi-github', version: '0.23'
+}
+
+
+import com.jcabi.github.Release
+import com.jcabi.github.RtGithub;
+import com.jcabi.github.Issue;
+import com.jcabi.github.Github;
+import com.jcabi.github.Repo;
+import com.jcabi.github.Coordinates;
+task github << {
+    Github github = new RtGithub("36a58d44099a1b660e2b7dbf3048a84fdc575676");
+    Repo repo = github.repos().get(new Coordinates.Simple("systemfabrikken", "lederplan"));
+    Issue issue = repo.issues().get(307);
+    println issue
+
+
+
+    def release = repo.releases().create("tag")
+    new Release.Smart(release).body("kropp") //blir dette lagret?
+}
+
+
+import org.ajoberstar.grgit.*
+
+def repo = Grgit.open(project.file('.'))
+
+/*
+hent alle tagger
+finn den siste taggen innenfor aktuell serie (hver serie har eget prefix (web/app etc)
+hent all commits mellom tag og head
+grupper commits etter github issue
+hent alle githubissues nevnt i commiter
+for hvert issue - fjern issue og tilhørende commits som ikke er tagget med tagger tilhørende serien
+lag rapport
+legg til tag
+push
+opprett github release med rapport
+ */
+task tag << {
+    def tag = repo.tag.add(name: "new-tag-${System.currentTimeMillis()}", message: 'Some message')
+    println tag
+
+    def push = repo.push(tags: true)
+    println "push"
+    println push
+
+    def tags = repo.tag.list()
+    println "tags"
+    println tags
+
+}
+
+task list << {
+    def tags = repo.tag.list()
+    println "tags"
+    println tags
+}
+
+
+task hist << {
+    def history = repo.log {
+        maxCommits = 5
+        //range = 'v1.0', 'v2.0'
+    }
+
+    println history
+}
+
+
 group 'no.systemfabrikken'
 version '1.0-SNAPSHOT'
 
@@ -9,5 +106,4 @@ repositories {
 
 dependencies {
     compile 'org.codehaus.groovy:groovy-all:2.3.11'
-    testCompile group: 'junit', name: 'junit', version: '4.11'
 }
